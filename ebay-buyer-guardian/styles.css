@@ -1,0 +1,154 @@
+/* ============================================================
+   eBay Buyer Guardian — Injected Styles
+   Loaded on ebay.com pages alongside content.js
+   ============================================================ */
+
+/* ---------- Badge ---------- */
+.ebg-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: default;
+  user-select: none;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease;
+  z-index: 900000;
+}
+
+.ebg-badge:hover {
+  transform: scale(1.15);
+}
+
+.ebg-badge-green {
+  background: #22c55e;
+  color: #fff;
+}
+
+.ebg-badge-yellow {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.ebg-badge-red {
+  background: #ef4444;
+  color: #fff;
+}
+
+.ebg-badge-disabled {
+  background: #9ca3af;
+  color: #fff;
+}
+
+/* ---------- Tooltip ---------- */
+.ebg-tooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  min-width: 260px;
+  max-width: 340px;
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  z-index: 900001;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ebg-tooltip::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid #1e293b;
+}
+
+.ebg-tooltip-visible {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ebg-tooltip strong {
+  display: block;
+  font-size: 14px;
+  color: #f8fafc;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.ebg-tooltip-seller {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #334155;
+}
+
+.ebg-tooltip .ebg-val {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.ebg-risk-label {
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.ebg-risk-green {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.ebg-risk-yellow {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.ebg-risk-red {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.ebg-reasons {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #334155;
+}
+
+.ebg-reason {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+/* ---------- Search result adjustments ---------- */
+.ebg-seller-container {
+  position: relative !important;
+}

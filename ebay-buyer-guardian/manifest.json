@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "eBay Buyer Guardian",
+  "version": "1.0.0",
+  "description": "Seller Risk Analyzer — instantly spot risky eBay sellers with color-coded badges, custom rules, and a history dashboard. 100% local, zero external APIs.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://*.ebay.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.ebay.com/itm/*", "https://*.ebay.com/sch/*", "https://*.ebay.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eBay Buyer Guardian</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="header-icon">🛡️</div>
+      <div>
+        <h1>eBay Buyer Guardian</h1>
+        <p class="subtitle">Seller Risk Analyzer</p>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="rules">⚙️ Rules</button>
+      <button class="tab" data-tab="history">📋 History</button>
+      <button class="tab" data-tab="about">ℹ️ About</button>
+    </nav>
+
+    <!-- Rules Tab -->
+    <section id="tab-rules" class="tab-content active">
+      <!-- Enable/Disable -->
+      <div class="setting-row">
+        <label class="toggle-label">
+          <span>Enable Protection</span>
+          <input type="checkbox" id="rule-enabled" />
+          <span class="toggle-switch"></span>
+        </label>
+      </div>
+
+      <!-- Min Feedback % -->
+      <div class="setting-group">
+        <label for="rule-feedback-pct">
+          Minimum Feedback %
+          <span class="hint">Sellers below this get flagged</span>
+        </label>
+        <div class="input-row">
+          <input type="range" id="rule-feedback-pct" min="90" max="100" step="0.1" />
+          <span id="feedback-pct-val" class="range-val">98.0%</span>
+        </div>
+      </div>
+
+      <!-- Min Feedback Count -->
+      <div class="setting-group">
+        <label for="rule-feedback-count">
+          Minimum Feedback Count
+          <span class="hint">Very low feedback = higher risk</span>
+        </label>
+        <div class="input-row">
+          <input type="range" id="rule-feedback-count" min="0" max="500" step="10" />
+          <span id="feedback-count-val" class="range-val">50</span>
+        </div>
+      </div>
+
+      <!-- Min Account Age -->
+      <div class="setting-group">
+        <label for="rule-account-age">
+          Minimum Account Age (years)
+          <span class="hint">New accounts are riskier</span>
+        </label>
+        <div class="input-row">
+          <input type="range" id="rule-account-age" min="0" max="10" step="1" />
+          <span id="account-age-val" class="range-val">1</span>
+        </div>
+      </div>
+
+      <button id="btn-reset-rules" class="btn-secondary">Reset to Defaults</button>
+      <div id="rules-saved" class="saved-msg">✓ Saved</div>
+    </section>
+
+    <!-- History Tab -->
+    <section id="tab-history" class="tab-content">
+      <div class="history-toolbar">
+        <span id="history-count" class="history-count">0 sellers</span>
+        <button id="btn-clear-history" class="btn-secondary btn-sm">Clear All</button>
+      </div>
+      <div id="history-list" class="history-list">
+        <div class="empty-state">No sellers analyzed yet.<br/>Visit an eBay listing to get started!</div>
+      </div>
+    </section>
+
+    <!-- About Tab -->
+    <section id="tab-about" class="tab-content">
+      <div class="about-content">
+        <h2>eBay Buyer Guardian v1.0.0</h2>
+        <p>Instantly spot risky eBay sellers with color-coded badges, customizable rules, and a history dashboard.</p>
+        <div class="feature-list">
+          <div class="feature">🟢 <strong>Green</strong> — Seller looks safe</div>
+          <div class="feature">🟡 <strong>Yellow</strong> — Some risk factors detected</div>
+          <div class="feature">🔴 <strong>Red</strong> — High risk, proceed with caution</div>
+        </div>
+        <h3>How it works</h3>
+        <ol>
+          <li>Visit any eBay listing or search results page</li>
+          <li>The extension parses seller info locally (no external APIs)</li>
+          <li>A color-coded badge appears next to the seller name</li>
+          <li>Hover the badge for detailed risk breakdown</li>
+          <li>Customize rules in this popup</li>
+        </ol>
+        <h3>Privacy</h3>
+        <p>100% local. No data is sent anywhere. All analysis happens in your browser. Seller history is stored in <code>chrome.storage.sync</code>.</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
