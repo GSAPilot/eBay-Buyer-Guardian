@@ -8,7 +8,7 @@ const STORAGE_KEY_LICENSE = "ebg_license";
 
 // Our server-side validation endpoint (more secure than calling
 // Lemon Squeezy directly, as it keeps API keys server-side)
-const LICENSE_API_URL = "https://ebaybuyerguardian.lemonsqueezy.com";
+const LICENSE_API_URL = "https://ebay-buyer-guardian.vercel.app";
 
 // Fallback: if our API is unreachable, validate directly with Lemon Squeezy
 const LEMON_SQUEEZY_VALIDATE_URL = "https://api.lemonsqueezy.com/v1/licenses/validate";
