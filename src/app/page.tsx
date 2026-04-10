@@ -195,7 +195,7 @@ const pricingTiers = [
     cta: "Subscribe Monthly",
     ctaVariant: "default" as const,
     popular: false,
-    href: "https://ebay-guardian.lemonsqueezy.com/checkout/buy/monthly",
+    href: "https://ebaybuyerguardian.lemonsqueezy.com/checkout/buy/7d964dc4-1880-4787-afdd-0d57fefbbcb3",
   },
   {
     name: "Pro Lifetime",
@@ -216,7 +216,7 @@ const pricingTiers = [
     cta: "Get Lifetime Access",
     ctaVariant: "default" as const,
     popular: true,
-    href: "https://ebay-guardian.lemonsqueezy.com/checkout/buy/lifetime",
+    href: "https://ebaybuyerguardian.lemonsqueezy.com/checkout/buy/1bd31dcf-9cf9-4892-8a8f-e94a3bf154e5",
   },
 ];
 
@@ -785,7 +785,7 @@ export default function Home() {
                   </Button>
                 </a>
                 <a
-                  href="https://ebay-guardian.lemonsqueezy.com/checkout/buy/lifetime"
+                  href="https://ebaybuyerguardian.lemonsqueezy.com/checkout/buy/1bd31dcf-9cf9-4892-8a8f-e94a3bf154e5"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

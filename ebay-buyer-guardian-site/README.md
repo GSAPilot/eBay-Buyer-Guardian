@@ -2,7 +2,7 @@
 
 > Spot risky eBay sellers instantly with color-coded risk badges. Free for listing pages, Pro adds search badges, custom rules & detailed breakdowns.
 
-**[🌐 Live Landing Page](https://your-username.github.io/ebay-buyer-guardian/)** · **[⬇ Download Extension](https://github.com/your-username/ebay-buyer-guardian/releases/latest)** · **[⭐ Get Pro — $39 Lifetime](https://ebay-guardian.lemonsqueezy.com/checkout/buy/lifetime)**
+**[🌐 Live Landing Page](https://your-username.github.io/ebay-buyer-guardian/)** · **[⬇ Download Extension](https://github.com/your-username/ebay-buyer-guardian/releases/latest)** · **[⭐ Get Pro — $39 Lifetime](https://ebaybuyerguardian.lemonsqueezy.com/checkout/buy/1bd31dcf-9cf9-4892-8a8f-e94a3bf154e5)**
 
 ---
 

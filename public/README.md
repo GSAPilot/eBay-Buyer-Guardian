@@ -3,7 +3,7 @@
 > **Free Chrome extension** that instantly analyzes eBay seller risk with color-coded badges. Spot scam sellers before you buy. 100% local, zero external APIs, fully private.
 
 [![Download Free](https://img.shields.io/badge/Download-Free-brightgreen)](assets/ebay-buyer-guardian.zip)
-[![Pro Lifetime](https://img.shields.io/badge/Pro-Lifetime%20%2439-purple)](https://ebay-guardian.lemonsqueezy.com/checkout/buy/lifetime)
+[![Pro Lifetime](https://img.shields.io/badge/Pro-Lifetime%20%2439-purple)](https://ebaybuyerguardian.lemonsqueezy.com/checkout/buy/1bd31dcf-9cf9-4892-8a8f-e94a3bf154e5)
 [![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/ebay-buyer-guardian/ebay-buyer-guardian.github.io)
 
 ## 🛡️ What It Does
