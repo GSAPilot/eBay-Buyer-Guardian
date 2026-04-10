@@ -322,67 +322,15 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* ── LOGO PICKER ── */}
-      <section className="border-b border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold tracking-tight">
-              Choose Your Shield Logo
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Three creative directions for the eBay Buyer Guardian brand. Pick your favorite — it'll be used across the extension and landing page.
-            </p>
-          </div>
-          <div className="grid gap-8 md:grid-cols-3">
-            {[
-              {
-                src: "/logos/logo-option1.png",
-                name: "Option 1 — The Sentinel",
-                desc: "Sleek geometric shield with an integrated checkmark. Clean minimalist design with emerald-to-teal gradient. Represents trust and verified safety.",
-              },
-              {
-                src: "/logos/logo-option2.png",
-                name: "Option 2 — The Watchful Eye",
-                desc: "Bold heraldic shield with a guardian eye motif. Rich emerald body with golden amber accents. Symbolizes watchful protection over online shoppers.",
-              },
-              {
-                src: "/logos/logo-option3.png",
-                name: "Option 3 — The Cyber Shield",
-                desc: "Futuristic tech shield with circuit-board traces and a central padlock. Navy blue with glowing green accents. Cybersecurity aesthetic for the digital age.",
-              },
-            ].map((logo, i) => (
-              <Card
-                key={i}
-                className="group border-border bg-card transition-all hover:shadow-xl hover:ring-2 hover:ring-primary/40"
-              >
-                <CardContent className="p-6">
-                  <div className="mx-auto mb-6 flex h-48 w-48 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/50 to-muted/80 p-4 transition-transform group-hover:scale-105">
-                    <img
-                      src={logo.src}
-                      alt={logo.name}
-                      className="h-full w-full object-contain drop-shadow-lg"
-                    />
-                  </div>
-                  <h3 className="text-center text-lg font-bold">
-                    {logo.name}
-                  </h3>
-                  <p className="mt-2 text-center text-sm leading-relaxed text-muted-foreground">
-                    {logo.desc}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── NAV ── */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Shield className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <img
+              src="/logos/logo-option1.png"
+              alt="eBay Buyer Guardian shield logo"
+              className="h-9 w-9 rounded-lg"
+            />
             <div>
               <span className="text-base font-bold tracking-tight">
                 eBay Buyer Guardian
@@ -452,13 +400,23 @@ export default function Home() {
                   Chrome &amp; Chromium · Manifest V3 · Lemon Squeezy checkout
                 </div>
               </div>
-              <div className="relative">
-                <div className="absolute -inset-4 rounded-2xl bg-gradient-to-br from-green-500/10 via-transparent to-purple-500/10 blur-2xl" />
-                <img
-                  src="/hero-image.png"
-                  alt="eBay Buyer Guardian hero illustration"
-                  className="relative rounded-2xl border border-border shadow-2xl"
-                />
+              <div className="relative flex items-center justify-center">
+                <div className="absolute -inset-4 rounded-2xl bg-gradient-to-br from-green-500/10 via-transparent to-emerald-500/10 blur-2xl" />
+                <div className="relative flex flex-col items-center gap-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 scale-150 rounded-full bg-green-500/10 blur-3xl" />
+                    <img
+                      src="/logos/logo-option1.png"
+                      alt="eBay Buyer Guardian — The Sentinel Shield"
+                      className="relative h-64 w-64 drop-shadow-2xl sm:h-80 sm:w-80"
+                    />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <RiskBadge variant="green" />
+                    <RiskBadge variant="yellow" />
+                    <RiskBadge variant="red" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -803,7 +761,11 @@ export default function Home() {
         <section className="border-t border-border bg-muted/30">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="rounded-2xl bg-gradient-to-br from-primary via-primary to-purple-900 px-8 py-12 text-center text-primary-foreground sm:px-16">
-              <Shield className="mx-auto mb-4 h-12 w-12 opacity-80" />
+              <img
+                src="/logos/logo-option1.png"
+                alt="eBay Buyer Guardian shield"
+                className="mx-auto mb-4 h-16 w-16 opacity-90"
+              />
               <h2 className="text-3xl font-bold">
                 Start Shopping Safer on eBay
               </h2>
@@ -846,7 +808,11 @@ export default function Home() {
       <footer className="mt-auto border-t border-border bg-muted/30">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-6 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Shield className="h-4 w-4" />
+            <img
+              src="/logos/logo-option1.png"
+              alt=""
+              className="h-5 w-5"
+            />
             eBay Buyer Guardian v1.1.0
           </div>
           <p className="text-xs text-muted-foreground">

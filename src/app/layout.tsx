@@ -14,24 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "eBay Buyer Guardian — Seller Risk Analyzer Chrome Extension",
+  description: "Spot risky eBay sellers instantly with color-coded risk badges. Free Chrome extension that analyzes seller feedback, account age, and reputation. 100% local, no external APIs.",
+  keywords: ["eBay", "seller risk", "eBay buyer protection", "Chrome extension", "eBay safety", "seller analyzer", "eBay scam detector", "feedback checker", "online shopping safety", "browser extension"],
+  authors: [{ name: "eBay Buyer Guardian" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logos/logo-option1.png",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "eBay Buyer Guardian — Seller Risk Analyzer",
+    description: "Spot risky eBay sellers instantly with color-coded risk badges. Free Chrome extension — 100% local analysis, no external APIs.",
+    url: "https://ebay-buyer-guardian.vercel.app",
+    siteName: "eBay Buyer Guardian",
     type: "website",
+    images: ["/logos/logo-option1.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "eBay Buyer Guardian — Seller Risk Analyzer",
+    description: "Spot risky eBay sellers instantly with color-coded risk badges. Free Chrome extension.",
+    images: ["/logos/logo-option1.png"],
   },
 };
 
