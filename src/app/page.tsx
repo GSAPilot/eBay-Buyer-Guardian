@@ -291,13 +291,16 @@ function RiskBadge({
   );
 }
 
-function FAQItem({ q, a }: { q: string; a: string }) {
+function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
   const [open, setOpen] = useState(false);
+  const id = `faq-answer-${index}`;
   return (
-    <div className="border-b border-border last:border-0">
+    <div className="border-b border-border last:border-0" role="listitem">
       <button
         className="flex w-full items-center justify-between gap-4 py-4 text-left text-sm font-medium text-foreground hover:text-primary transition-colors"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={id}
       >
         {q}
         {open ? (
@@ -307,7 +310,11 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         )}
       </button>
       {open && (
-        <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
+        <p
+          id={id}
+          role="region"
+          className="pb-4 text-sm leading-relaxed text-muted-foreground"
+        >
           {a}
         </p>
       )}
@@ -332,7 +339,8 @@ const jsonLdSoftwareApp = {
   alternateName: "eBay Seller Risk Analyzer",
   applicationCategory: "BrowserExtension",
   operatingSystem: "Chrome",
-  browserRequirements: "Requires Google Chrome or Chromium-based browser with Manifest V3 support",
+  browserRequirements:
+    "Requires Google Chrome or Chromium-based browser with Manifest V3 support",
   description:
     "Free Chrome extension that instantly analyzes eBay seller risk with color-coded badges (green, yellow, red). Combines feedback percentage, feedback count, and account age into a single actionable risk score. 100% local analysis — no external APIs, no data leaves your browser.",
   featureList: [
@@ -352,7 +360,8 @@ const jsonLdSoftwareApp = {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
-      description: "Free tier — listing page badges, basic scoring, 25-entry history",
+      description:
+        "Free tier — listing page badges, basic scoring, 25-entry history",
       availability: "https://schema.org/InStock",
     },
     {
@@ -415,6 +424,23 @@ const jsonLdOrg = {
   },
 };
 
+const jsonLdWebSite = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "eBay Buyer Guardian",
+  url: SITE_URL,
+  description:
+    "Free Chrome extension that instantly analyzes eBay seller risk with color-coded badges. 100% local, no external APIs.",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
 const jsonLdBreadcrumb = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -443,6 +469,32 @@ const jsonLdHowTo = {
   })),
 };
 
+const jsonLdProducts = pricingTiers.map((tier) => ({
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: `eBay Buyer Guardian — ${tier.name}`,
+  description: tier.desc,
+  brand: {
+    "@type": "Brand",
+    name: "eBay Buyer Guardian",
+  },
+  category: "Browser Extension",
+  image: `${SITE_URL}/logos/logo-option1.png`,
+  offers: {
+    "@type": "Offer",
+    price: tier.price.replace("$", ""),
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: tier.href.startsWith("http")
+      ? tier.href
+      : `${SITE_URL}${tier.href}`,
+    seller: {
+      "@type": "Organization",
+      name: "eBay Buyer Guardian",
+    },
+  },
+}));
+
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -468,6 +520,12 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLdWebSite),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLdBreadcrumb),
         }}
       />
@@ -477,36 +535,66 @@ export default function Home() {
           __html: JSON.stringify(jsonLdHowTo),
         }}
       />
+      {jsonLdProducts.map((product, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(product),
+          }}
+        />
+      ))}
 
       {/* ── AEO: Screen-reader only entity summary for AI crawlers ── */}
-      <div className="sr-only">
+      <div className="sr-only" aria-hidden="true">
         <p>
-          eBay Buyer Guardian is a free Chrome browser extension that helps eBay
-          buyers identify risky sellers instantly. It displays color-coded risk
-          badges — green for safe, yellow for caution, red for high risk — next
-          to seller names on eBay listing and search pages. The risk score is
-          calculated from three factors: seller feedback percentage, total
-          feedback count, and account age. All analysis runs 100% locally in the
-          browser with zero external API calls, ensuring complete privacy and no
-          CAPTCHA triggers. The free tier includes listing page badges, basic
-          risk scoring, and 25-entry seller history. The Pro tier unlocks
-          search page badges, custom risk thresholds, detailed risk reasons,
-          500-entry history, and CSV export for $4.99/month or $39 lifetime.
-          Payments are processed securely through Lemon Squeezy. The extension
-          uses Chrome Manifest V3 and requires only minimal permissions
-          (storage, activeTab). It is the leading eBay seller risk analyzer for
-          online marketplace safety, buyer protection, scam prevention, and
-          seller reputation checking.
+          <span itemProp="name">eBay Buyer Guardian</span> is a free{" "}
+          <span itemProp="applicationCategory">
+            Chrome browser extension
+          </span>{" "}
+          that helps <span itemProp="about">eBay</span> buyers identify risky
+          sellers instantly. It displays color-coded risk badges — green for
+          safe, yellow for caution, red for high risk — next to seller names on
+          eBay listing and search pages. The risk score is calculated from three
+          factors: seller feedback percentage, total feedback count, and account
+          age. All analysis runs 100% locally in the browser with zero external
+          API calls, ensuring complete privacy and no CAPTCHA triggers. The free
+          tier includes listing page badges, basic risk scoring, and 25-entry
+          seller history. The Pro tier unlocks search page badges, custom risk
+          thresholds, detailed risk reasons, 500-entry history, and CSV export
+          for $4.99/month or $39 lifetime. Payments are processed securely
+          through{" "}
+          <span itemProp="provider">Lemon Squeezy</span>. The extension uses{" "}
+          <span itemProp="browserRequirements">Chrome Manifest V3</span> and
+          requires only minimal permissions (storage, activeTab). It is the
+          leading eBay seller risk analyzer for online marketplace safety, buyer
+          protection, scam prevention, and seller reputation checking.
         </p>
       </div>
 
+      {/* ── AEO: Hidden microdata entities for AI answer engines ── */}
+      <span className="sr-only" itemProp="about" itemScope itemType="https://schema.org/Thing">
+        <meta itemProp="name" content="eBay" />
+      </span>
+      <span className="sr-only" itemProp="browserRequirements" itemScope itemType="https://schema.org/Thing">
+        <meta itemProp="name" content="Google Chrome" />
+      </span>
+      <span className="sr-only" itemProp="provider" itemScope itemType="https://schema.org/Organization">
+        <meta itemProp="name" content="Lemon Squeezy" />
+      </span>
+
       {/* ── NAV ── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <header
+        className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg"
+        role="banner"
+      >
+        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6" aria-label="Main navigation">
           <div className="flex items-center gap-2.5">
             <img
               src="/logos/logo-option1.png"
               alt="eBay Buyer Guardian shield logo"
+              width={36}
+              height={36}
               className="h-9 w-9 rounded-lg"
             />
             <div>
@@ -529,12 +617,17 @@ export default function Home() {
               </Button>
             </a>
           </div>
-        </div>
+        </nav>
       </header>
 
       <main className="flex-1">
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden">
+        <section
+          className="relative overflow-hidden"
+          aria-label="Hero — eBay Buyer Guardian seller risk analyzer"
+          itemScope
+          itemType="https://schema.org/SoftwareApplication"
+        >
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_-20%,rgba(34,197,94,0.08),transparent)]" />
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
             <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -575,7 +668,10 @@ export default function Home() {
                 </div>
                 <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground">
                   <Chrome className="h-4 w-4" />
-                  Chrome &amp; Chromium · Manifest V3 · Lemon Squeezy checkout
+                  <span>
+                    Chrome &amp; Chromium · Manifest V3 ·{" "}
+                    <span itemProp="provider">Lemon Squeezy</span> checkout
+                  </span>
                 </div>
               </div>
               <div className="relative flex items-center justify-center">
@@ -585,7 +681,9 @@ export default function Home() {
                     <div className="absolute inset-0 scale-150 rounded-full bg-green-500/10 blur-3xl" />
                     <img
                       src="/logos/logo-option1.png"
-                      alt="eBay Buyer Guardian — The Sentinel Shield"
+                      alt="eBay Buyer Guardian — The Sentinel Shield logo for seller risk analysis"
+                      width={320}
+                      height={320}
                       className="relative h-64 w-64 drop-shadow-2xl sm:h-80 sm:w-80"
                     />
                   </div>
@@ -601,7 +699,10 @@ export default function Home() {
         </section>
 
         {/* ── FEATURES ── */}
-        <section className="border-t border-border bg-muted/30">
+        <section
+          className="border-t border-border bg-muted/30"
+          aria-label="Features"
+        >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight">
@@ -641,7 +742,10 @@ export default function Home() {
         </section>
 
         {/* ── RISK LEVELS ── */}
-        <section className="border-t border-border">
+        <section
+          className="border-t border-border"
+          aria-label="Risk levels"
+        >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight">
@@ -699,7 +803,11 @@ export default function Home() {
         </section>
 
         {/* ── PRICING ── */}
-        <section id="pricing" className="border-t border-border bg-muted/30">
+        <section
+          id="pricing"
+          className="border-t border-border bg-muted/30"
+          aria-label="Pricing plans"
+        >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="text-center">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-600">
@@ -808,9 +916,11 @@ export default function Home() {
             </div>
             <p className="mt-6 text-center text-xs text-muted-foreground">
               Payments processed securely by{" "}
-              <span className="font-semibold">Lemon Squeezy</span>. Low refund
-              rate — just 4 out of 92 in comparable extensions. Cancel monthly
-              anytime.
+              <span className="font-semibold" itemProp="provider">
+                Lemon Squeezy
+              </span>
+              . Low refund rate — just 4 out of 92 in comparable extensions.
+              Cancel monthly anytime.
             </p>
           </div>
         </section>
@@ -819,6 +929,7 @@ export default function Home() {
         <section
           id="how-it-works"
           className="border-t border-border"
+          aria-label="How it works — install steps"
         >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="text-center">
@@ -830,9 +941,9 @@ export default function Home() {
                 Mode.
               </p>
             </div>
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
+            <ol className="mt-12 grid gap-8 md:grid-cols-3 list-none">
               {installSteps.map((s) => (
-                <div key={s.step} className="relative text-center">
+                <li key={s.step} className="relative text-center">
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
                     {s.step}
                   </div>
@@ -840,9 +951,9 @@ export default function Home() {
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     {s.desc}
                   </p>
-                </div>
+                </li>
               ))}
-            </div>
+            </ol>
             <div className="mt-12 text-center">
               <a href="/ebay-buyer-guardian.zip" download>
                 <Button size="lg" className="gap-2 text-base">
@@ -855,7 +966,10 @@ export default function Home() {
         </section>
 
         {/* ── PREVIEW ── */}
-        <section className="border-t border-border bg-muted/30">
+        <section
+          className="border-t border-border bg-muted/30"
+          aria-label="Extension preview"
+        >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div>
@@ -911,7 +1025,10 @@ export default function Home() {
                 <div className="absolute -inset-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-transparent to-purple-500/10 blur-2xl" />
                 <img
                   src="/risk-levels.png"
-                  alt="Risk level indicators illustration"
+                  alt="eBay Buyer Guardian risk level indicators showing safe, caution, and high risk badge examples on eBay listing pages"
+                  width={800}
+                  height={500}
+                  loading="lazy"
                   className="relative rounded-2xl border border-border shadow-2xl"
                 />
               </div>
@@ -920,28 +1037,37 @@ export default function Home() {
         </section>
 
         {/* ── FAQ ── */}
-        <section className="border-t border-border">
+        <section
+          className="border-t border-border"
+          aria-label="Frequently asked questions"
+        >
           <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight">
                 Frequently Asked Questions
               </h2>
             </div>
-            <div className="mt-10">
-              {faqs.map((f) => (
-                <FAQItem key={f.q} q={f.q} a={f.a} />
+            <div className="mt-10" role="list">
+              {faqs.map((f, i) => (
+                <FAQItem key={f.q} q={f.q} a={f.a} index={i} />
               ))}
             </div>
           </div>
         </section>
 
         {/* ── CTA ── */}
-        <section className="border-t border-border bg-muted/30">
+        <section
+          className="border-t border-border bg-muted/30"
+          aria-label="Get started — download and upgrade"
+        >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="rounded-2xl bg-gradient-to-br from-primary via-primary to-purple-900 px-8 py-12 text-center text-primary-foreground sm:px-16">
               <img
                 src="/logos/logo-option1.png"
-                alt="eBay Buyer Guardian shield"
+                alt="eBay Buyer Guardian shield icon"
+                width={64}
+                height={64}
+                loading="lazy"
                 className="mx-auto mb-4 h-16 w-16 opacity-90"
               />
               <h2 className="text-3xl font-bold">
@@ -983,19 +1109,26 @@ export default function Home() {
       </main>
 
       {/* ── FOOTER ── */}
-      <footer className="mt-auto border-t border-border bg-muted/30">
+      <footer
+        className="mt-auto border-t border-border bg-muted/30"
+        role="contentinfo"
+      >
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-6 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <img
               src="/logos/logo-option1.png"
-              alt=""
+              alt="eBay Buyer Guardian logo"
+              width={20}
+              height={20}
+              loading="lazy"
               className="h-5 w-5"
             />
             eBay Buyer Guardian v1.1.0
           </div>
           <p className="text-xs text-muted-foreground">
-            Not affiliated with eBay Inc. · Payments by Lemon Squeezy · 100%
-            local analysis
+            Not affiliated with eBay Inc. · Payments by{" "}
+            <span itemProp="provider">Lemon Squeezy</span> · 100% local
+            analysis
           </p>
         </div>
       </footer>
