@@ -19,7 +19,16 @@ const VARIANT_LIFETIME = 1512404; // $39.00 one-time
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { valid: false, error: "Request body must be valid JSON with a 'key' field." },
+        { status: 400 }
+      );
+    }
+
     const { key } = body;
 
     if (!key || typeof key !== "string") {
