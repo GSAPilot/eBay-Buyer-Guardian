@@ -11,16 +11,18 @@
     <!-- Header -->
     <header class="popup-header">
       <div class="header-icon">🛡️</div>
-      <div>
+      <div class="header-left">
         <h1>eBay Buyer Guardian</h1>
         <p class="subtitle">Seller Risk Analyzer</p>
       </div>
+      <div id="tier-badge" class="tier-badge tier-free">Free</div>
     </header>
 
     <!-- Tabs -->
     <nav class="tabs">
       <button class="tab active" data-tab="rules">⚙️ Rules</button>
       <button class="tab" data-tab="history">📋 History</button>
+      <button class="tab" data-tab="upgrade">⭐ Pro</button>
       <button class="tab" data-tab="about">ℹ️ About</button>
     </nav>
 
@@ -35,43 +37,52 @@
         </label>
       </div>
 
+      <!-- Premium gate banner -->
+      <div id="rules-premium-gate" class="premium-gate" style="display:none;">
+        <div class="premium-gate-icon">🔒</div>
+        <div class="premium-gate-text">
+          Custom thresholds are a <strong>Pro</strong> feature.
+          <a href="#" id="rules-goto-upgrade">Upgrade →</a>
+        </div>
+      </div>
+
       <!-- Min Feedback % -->
-      <div class="setting-group">
+      <div class="setting-group" id="setting-feedback-pct">
         <label for="rule-feedback-pct">
           Minimum Feedback %
           <span class="hint">Sellers below this get flagged</span>
         </label>
         <div class="input-row">
-          <input type="range" id="rule-feedback-pct" min="90" max="100" step="0.1" />
+          <input type="range" id="rule-feedback-pct" min="90" max="100" step="0.1" disabled />
           <span id="feedback-pct-val" class="range-val">98.0%</span>
         </div>
       </div>
 
       <!-- Min Feedback Count -->
-      <div class="setting-group">
+      <div class="setting-group" id="setting-feedback-count">
         <label for="rule-feedback-count">
           Minimum Feedback Count
           <span class="hint">Very low feedback = higher risk</span>
         </label>
         <div class="input-row">
-          <input type="range" id="rule-feedback-count" min="0" max="500" step="10" />
+          <input type="range" id="rule-feedback-count" min="0" max="500" step="10" disabled />
           <span id="feedback-count-val" class="range-val">50</span>
         </div>
       </div>
 
       <!-- Min Account Age -->
-      <div class="setting-group">
+      <div class="setting-group" id="setting-account-age">
         <label for="rule-account-age">
           Minimum Account Age (years)
           <span class="hint">New accounts are riskier</span>
         </label>
         <div class="input-row">
-          <input type="range" id="rule-account-age" min="0" max="10" step="1" />
+          <input type="range" id="rule-account-age" min="0" max="10" step="1" disabled />
           <span id="account-age-val" class="range-val">1</span>
         </div>
       </div>
 
-      <button id="btn-reset-rules" class="btn-secondary">Reset to Defaults</button>
+      <button id="btn-reset-rules" class="btn-secondary" disabled>Reset to Defaults</button>
       <div id="rules-saved" class="saved-msg">✓ Saved</div>
     </section>
 
@@ -79,17 +90,106 @@
     <section id="tab-history" class="tab-content">
       <div class="history-toolbar">
         <span id="history-count" class="history-count">0 sellers</span>
-        <button id="btn-clear-history" class="btn-secondary btn-sm">Clear All</button>
+        <div class="history-actions">
+          <button id="btn-export-history" class="btn-secondary btn-sm" style="display:none;">📥 Export</button>
+          <button id="btn-clear-history" class="btn-secondary btn-sm">Clear All</button>
+        </div>
+      </div>
+      <div id="history-limit-msg" class="history-limit-msg" style="display:none;">
+        Free plan: last 25 sellers. <a href="#" id="history-goto-upgrade">Upgrade for 500 →</a>
       </div>
       <div id="history-list" class="history-list">
         <div class="empty-state">No sellers analyzed yet.<br/>Visit an eBay listing to get started!</div>
       </div>
     </section>
 
+    <!-- Upgrade Tab -->
+    <section id="tab-upgrade" class="tab-content">
+      <div class="upgrade-content">
+        <!-- Premium status -->
+        <div id="premium-status" class="premium-status">
+          <div class="premium-status-icon">🔒</div>
+          <div class="premium-status-text">
+            <strong>Free Plan</strong>
+            <p>Upgrade to unlock all features</p>
+          </div>
+        </div>
+
+        <!-- Feature comparison -->
+        <div class="feature-compare">
+          <div class="compare-row compare-header">
+            <span>Feature</span>
+            <span>Free</span>
+            <span class="pro-col">Pro</span>
+          </div>
+          <div class="compare-row">
+            <span>Listing page badges</span>
+            <span>✅</span>
+            <span class="pro-col">✅</span>
+          </div>
+          <div class="compare-row">
+            <span>Search page badges</span>
+            <span>❌</span>
+            <span class="pro-col">✅</span>
+          </div>
+          <div class="compare-row">
+            <span>Custom risk thresholds</span>
+            <span>❌</span>
+            <span class="pro-col">✅</span>
+          </div>
+          <div class="compare-row">
+            <span>Detailed risk reasons</span>
+            <span>❌</span>
+            <span class="pro-col">✅</span>
+          </div>
+          <div class="compare-row">
+            <span>Seller history</span>
+            <span>25</span>
+            <span class="pro-col">500</span>
+          </div>
+          <div class="compare-row">
+            <span>Export history (CSV)</span>
+            <span>❌</span>
+            <span class="pro-col">✅</span>
+          </div>
+          <div class="compare-row">
+            <span>Priority badge styling</span>
+            <span>❌</span>
+            <span class="pro-col">✅</span>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="pricing-cards">
+          <div class="pricing-card pricing-monthly">
+            <div class="pricing-label">Monthly</div>
+            <div class="pricing-price">$4.99<span>/mo</span></div>
+            <a href="https://ebay-guardian.lemonsqueezy.com/checkout/buy/monthly" target="_blank" class="btn-pricing btn-monthly">Subscribe</a>
+          </div>
+          <div class="pricing-card pricing-lifetime">
+            <div class="pricing-popular">Most Popular</div>
+            <div class="pricing-label">Lifetime</div>
+            <div class="pricing-price">$39<span>one-time</span></div>
+            <a href="https://ebay-guardian.lemonsqueezy.com/checkout/buy/lifetime" target="_blank" class="btn-pricing btn-lifetime">Get Lifetime</a>
+          </div>
+        </div>
+
+        <!-- License key activation -->
+        <div class="license-section">
+          <label for="license-key-input">Activate License Key</label>
+          <div class="license-input-row">
+            <input type="text" id="license-key-input" placeholder="Enter your license key…" spellcheck="false" />
+            <button id="btn-activate-license" class="btn-activate">Activate</button>
+          </div>
+          <div id="license-status" class="license-status"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- About Tab -->
     <section id="tab-about" class="tab-content">
       <div class="about-content">
-        <h2>eBay Buyer Guardian v1.0.0</h2>
+        <h2>eBay Buyer Guardian v1.1.0</h2>
         <p>Instantly spot risky eBay sellers with color-coded badges, customizable rules, and a history dashboard.</p>
         <div class="feature-list">
           <div class="feature">🟢 <strong>Green</strong> — Seller looks safe</div>
@@ -101,11 +201,13 @@
           <li>Visit any eBay listing or search results page</li>
           <li>The extension parses seller info locally (no external APIs)</li>
           <li>A color-coded badge appears next to the seller name</li>
-          <li>Hover the badge for detailed risk breakdown</li>
-          <li>Customize rules in this popup</li>
+          <li>Hover the badge for detailed risk breakdown (Pro)</li>
+          <li>Customize rules in this popup (Pro)</li>
         </ol>
+        <h3>Free vs Pro</h3>
+        <p>Free: listing badges + basic risk scoring. <strong>Pro</strong> adds search badges, custom rules, detailed reasons, 500-history, CSV export, and premium badge styling.</p>
         <h3>Privacy</h3>
-        <p>100% local. No data is sent anywhere. All analysis happens in your browser. Seller history is stored in <code>chrome.storage.sync</code>.</p>
+        <p>100% local. All analysis happens in your browser. License validation is the only external call (Lemon Squeezy). Seller history is stored in <code>chrome.storage.sync</code>.</p>
       </div>
     </section>
   </div>

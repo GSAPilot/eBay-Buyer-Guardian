@@ -1,5 +1,5 @@
 /* ============================================================
-   eBay Buyer Guardian — Popup Styles
+   eBay Buyer Guardian — Popup Styles v1.1.0
    ============================================================ */
 
 * {
@@ -13,8 +13,8 @@ body {
   font-size: 13px;
   color: #1e293b;
   background: #f8fafc;
-  width: 380px;
-  min-height: 460px;
+  width: 400px;
+  min-height: 480px;
 }
 
 /* ---------- Header ---------- */
@@ -32,6 +32,10 @@ body {
   line-height: 1;
 }
 
+.header-left {
+  flex: 1;
+}
+
 .popup-header h1 {
   font-size: 15px;
   font-weight: 700;
@@ -44,6 +48,26 @@ body {
   margin-top: 1px;
 }
 
+/* ---------- Tier badge ---------- */
+.tier-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.tier-free {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.tier-pro {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+}
+
 /* ---------- Tabs ---------- */
 .tabs {
   display: flex;
@@ -53,10 +77,10 @@ body {
 
 .tab {
   flex: 1;
-  padding: 10px 8px;
+  padding: 9px 6px;
   border: none;
   background: none;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #64748b;
   cursor: pointer;
@@ -77,7 +101,7 @@ body {
 .tab-content {
   display: none;
   padding: 14px 16px;
-  max-height: 360px;
+  max-height: 380px;
   overflow-y: auto;
 }
 
@@ -170,6 +194,11 @@ body {
   outline: none;
 }
 
+.input-row input[type="range"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .input-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -180,12 +209,52 @@ body {
   cursor: pointer;
 }
 
+.input-row input[type="range"]:disabled::-webkit-slider-thumb {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
 .range-val {
   min-width: 42px;
   text-align: right;
   font-weight: 700;
   font-size: 12px;
   color: #1e293b;
+}
+
+/* ---------- Premium gate ---------- */
+.premium-gate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.premium-gate-icon {
+  font-size: 20px;
+}
+
+.premium-gate-text {
+  font-size: 12px;
+  color: #475569;
+}
+
+.premium-gate-text strong {
+  color: #7c3aed;
+}
+
+.premium-gate-text a {
+  color: #7c3aed;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.premium-gate-text a:hover {
+  text-decoration: underline;
 }
 
 /* ---------- Buttons ---------- */
@@ -204,6 +273,11 @@ body {
 
 .btn-secondary:hover {
   background: #e2e8f0;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-sm {
@@ -234,7 +308,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.history-actions {
+  display: flex;
+  gap: 6px;
 }
 
 .history-count {
@@ -243,8 +322,27 @@ body {
   font-weight: 600;
 }
 
+.history-limit-msg {
+  font-size: 11px;
+  color: #7c3aed;
+  padding: 6px 10px;
+  background: rgba(168, 85, 247, 0.06);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.history-limit-msg a {
+  color: #7c3aed;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.history-limit-msg a:hover {
+  text-decoration: underline;
+}
+
 .history-list {
-  max-height: 280px;
+  max-height: 260px;
   overflow-y: auto;
 }
 
@@ -307,6 +405,250 @@ body {
   font-size: 10px;
   color: #cbd5e1;
   flex-shrink: 0;
+}
+
+/* ---------- Upgrade / Premium ---------- */
+.upgrade-content {
+  text-align: center;
+}
+
+.premium-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.premium-status.premium-active {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.premium-status-icon {
+  font-size: 28px;
+}
+
+.premium-status-text strong {
+  display: block;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.premium-status-text p {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Feature comparison */
+.feature-compare {
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.compare-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.compare-row:last-child {
+  border-bottom: none;
+}
+
+.compare-row span:first-child {
+  flex: 1;
+  color: #334155;
+}
+
+.compare-row span:nth-child(2) {
+  width: 40px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.compare-row .pro-col {
+  width: 40px;
+  text-align: center;
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.compare-header {
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #64748b;
+}
+
+/* Pricing cards */
+.pricing-cards {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pricing-card {
+  flex: 1;
+  padding: 14px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  transition: box-shadow 0.15s;
+}
+
+.pricing-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.pricing-lifetime {
+  border-color: rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.03), rgba(124, 58, 237, 0.03));
+}
+
+.pricing-popular {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.pricing-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pricing-price {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 4px 0;
+}
+
+.pricing-price span {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.btn-pricing {
+  display: block;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  transition: opacity 0.15s;
+}
+
+.btn-pricing:hover {
+  opacity: 0.9;
+}
+
+.btn-monthly {
+  background: #1e293b;
+  color: #fff;
+}
+
+.btn-lifetime {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+}
+
+/* License section */
+.license-section {
+  text-align: left;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.license-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.license-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.license-input-row input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.license-input-row input:focus {
+  border-color: #7c3aed;
+}
+
+.btn-activate {
+  padding: 7px 14px;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-activate:hover {
+  opacity: 0.9;
+}
+
+.btn-activate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.license-status {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  min-height: 16px;
+}
+
+.license-success {
+  color: #22c55e;
+}
+
+.license-error {
+  color: #ef4444;
 }
 
 /* ---------- About ---------- */

@@ -1,7 +1,8 @@
 /* ============================================================
-   eBay Buyer Guardian — Content Script
+   eBay Buyer Guardian — Content Script v1.1.0
    Runs on ebay.com listing & search pages.
    Parses seller info, scores risk, injects badge + tooltip.
+   Freemium: search badges, custom rules, detailed reasons = Premium.
    ============================================================ */
 
 (function () {
@@ -9,12 +10,36 @@
 
   const STORAGE_KEY_RULES = "ebg_rules";
   const STORAGE_KEY_HISTORY = "ebg_history";
+  const STORAGE_KEY_LICENSE = "ebg_license";
+
   const DEFAULT_RULES = {
     minFeedbackPercent: 98.0,
     minAccountAgeYears: 1,
     minFeedbackCount: 50,
     enabled: true,
   };
+
+  const FREE_HISTORY_LIMIT = 25;
+
+  /* ---------- Premium check ---------- */
+  function getLicense() {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(STORAGE_KEY_LICENSE, (data) => {
+        const lic = data[STORAGE_KEY_LICENSE];
+        if (!lic || !lic.key) return resolve({ active: false, tier: "free" });
+        // Check expiry for monthly subscriptions
+        if (lic.expiresAt && Date.now() > lic.expiresAt) {
+          return resolve({ active: false, tier: "free", expired: true });
+        }
+        return resolve({
+          active: true,
+          tier: lic.tier || "premium",
+          plan: lic.plan || "lifetime",
+          expiresAt: lic.expiresAt || null,
+        });
+      });
+    });
+  }
 
   /* ---------- Storage helpers ---------- */
   function loadRules() {
@@ -25,7 +50,7 @@
     });
   }
 
-  function saveHistory(entry) {
+  function saveHistory(entry, isPremium) {
     chrome.storage.sync.get(STORAGE_KEY_HISTORY, (data) => {
       const hist = data[STORAGE_KEY_HISTORY] || {};
       hist[entry.username] = {
@@ -37,11 +62,12 @@
         timestamp: Date.now(),
         url: entry.url,
       };
-      // Keep last 200 sellers
+      // Free: keep last 25; Premium: keep last 500
+      const limit = isPremium ? 500 : FREE_HISTORY_LIMIT;
       const keys = Object.keys(hist);
-      if (keys.length > 200) {
+      if (keys.length > limit) {
         keys.sort((a, b) => hist[a].timestamp - hist[b].timestamp);
-        keys.slice(0, keys.length - 200).forEach((k) => delete hist[k]);
+        keys.slice(0, keys.length - limit).forEach((k) => delete hist[k]);
       }
       chrome.storage.sync.set({ [STORAGE_KEY_HISTORY]: hist });
     });
@@ -65,9 +91,7 @@
       joinYear: null,
     };
 
-    // Try multiple selectors that eBay uses for seller info
     const selectors = {
-      // Seller name
       username: [
         '[data-testid="x-seller-name"] a',
         '.seller-persona__name a',
@@ -76,13 +100,11 @@
         'a[data-testid="x-seller-name"]',
         '.d-stores-info-categories__container__info__section a',
         'span[class*="seller"] a',
-        // Broader fallbacks
         '.ux-layout-section--seller .ux-textspans a',
         '#RightSummaryPanel .ux-textspans a',
       ],
     };
 
-    // Parse seller username
     for (const sel of selectors.username) {
       const el = document.querySelector(sel);
       if (el && el.textContent.trim()) {
@@ -91,28 +113,21 @@
       }
     }
 
-    // Parse feedback percentage — look for patterns like "99.8%" or "99.8% positive feedback"
     const pageText = document.querySelector(
       '.ux-layout-section--seller, #RightSummaryPanel, .seller-persona'
     );
     if (pageText) {
       const text = pageText.textContent;
-
-      // Feedback percent
       const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/);
       if (fbMatch) {
         seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
       }
-
-      // Feedback count — e.g. "12,345 feedback" or "(12,345)"
       const fcMatch = text.match(
         /[\(\s](\d[\d,]+)\s*(?:feedback|reviews|ratings)/i
       );
       if (fcMatch) {
         seller.feedbackCount = parseInt(fcMatch[1].replace(/,/g, ""), 10);
       }
-
-      // Join year — e.g. "Joined in 2015" or "Member since: 2015"
       const jyMatch = text.match(
         /(?:joined|member\s+since|since)[^\d]*(\d{4})/i
       );
@@ -122,7 +137,6 @@
       }
     }
 
-    // Fallback: scan the entire page for seller section text
     if (!seller.feedbackPercent) {
       const allText = document.body.innerText;
       const fbMatch = allText.match(
@@ -132,8 +146,6 @@
         seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
       }
     }
-
-    // Fallback for feedback count
     if (!seller.feedbackCount) {
       const allText = document.body.innerText;
       const fcMatch = allText.match(
@@ -143,8 +155,6 @@
         seller.feedbackCount = parseInt(fcMatch[1].replace(/,/g, ""), 10);
       }
     }
-
-    // Fallback for join year
     if (!seller.joinYear) {
       const allText = document.body.innerText;
       const jyMatch = allText.match(
@@ -156,7 +166,6 @@
       }
     }
 
-    // Try to get username from breadcrumb or page title as last resort
     if (!seller.username) {
       const sellerLink = document.querySelector(
         'a[href*="/usr/"], a[href*="/str/"]'
@@ -175,7 +184,6 @@
   /* ---------- Seller parsing — Search results ---------- */
   function parseSearchSellers() {
     const sellers = [];
-    // Each result card
     const cards = document.querySelectorAll(
       '.srp-results .s-item, .srp-river-answer .s-item'
     );
@@ -190,26 +198,21 @@
         element: card,
       };
 
-      // Seller name in search results
       const sellerEl =
         card.querySelector(".s-item__seller-info-text") ||
         card.querySelector(".s-item__seller a") ||
         card.querySelector("[class*='seller']");
       if (sellerEl) {
         const text = sellerEl.textContent.trim();
-        // Extract name before feedback info
         const nameMatch = text.match(/^(.+?)(?:\s*\()/);
         seller.username = nameMatch
           ? nameMatch[1].trim()
           : text.split("(")[0].trim();
 
-        // Feedback % in parentheses
         const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/);
         if (fbMatch) {
           seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
         }
-
-        // Feedback count
         const fcMatch = text.match(/(\d[\d,]+)\s*(?:feedback|reviews)/i);
         if (fcMatch) {
           seller.feedbackCount = parseInt(fcMatch[1].replace(/,/g, ""), 10);
@@ -223,25 +226,29 @@
   }
 
   /* ---------- Risk scoring ---------- */
-  function scoreRisk(seller, rules) {
+  function scoreRisk(seller, rules, isPremium) {
     if (!rules.enabled) return { level: "disabled", score: -1, reasons: [] };
+
+    // Free users always use default thresholds
+    const effectiveRules = isPremium
+      ? rules
+      : { ...DEFAULT_RULES, enabled: rules.enabled };
 
     let score = 0;
     const reasons = [];
 
-    // Feedback percentage check
     if (seller.feedbackPercent !== null) {
-      if (seller.feedbackPercent < rules.minFeedbackPercent - 5) {
+      if (seller.feedbackPercent < effectiveRules.minFeedbackPercent - 5) {
         score += 3;
         reasons.push(
-          `Feedback ${seller.feedbackPercent}% is critically low (threshold: ${rules.minFeedbackPercent}%)`
+          `Feedback ${seller.feedbackPercent}% is critically low (threshold: ${effectiveRules.minFeedbackPercent}%)`
         );
-      } else if (seller.feedbackPercent < rules.minFeedbackPercent) {
+      } else if (seller.feedbackPercent < effectiveRules.minFeedbackPercent) {
         score += 2;
         reasons.push(
-          `Feedback ${seller.feedbackPercent}% is below threshold (${rules.minFeedbackPercent}%)`
+          `Feedback ${seller.feedbackPercent}% is below threshold (${effectiveRules.minFeedbackPercent}%)`
         );
-      } else if (seller.feedbackPercent < rules.minFeedbackPercent + 0.5) {
+      } else if (seller.feedbackPercent < effectiveRules.minFeedbackPercent + 0.5) {
         score += 1;
         reasons.push(
           `Feedback ${seller.feedbackPercent}% is borderline safe`
@@ -252,17 +259,16 @@
       reasons.push("Feedback percentage not found");
     }
 
-    // Feedback count check
     if (seller.feedbackCount !== null) {
-      if (seller.feedbackCount < rules.minFeedbackCount / 5) {
+      if (seller.feedbackCount < effectiveRules.minFeedbackCount / 5) {
         score += 3;
         reasons.push(
-          `Only ${seller.feedbackCount} feedback — very low (threshold: ${rules.minFeedbackCount})`
+          `Only ${seller.feedbackCount} feedback — very low (threshold: ${effectiveRules.minFeedbackCount})`
         );
-      } else if (seller.feedbackCount < rules.minFeedbackCount) {
+      } else if (seller.feedbackCount < effectiveRules.minFeedbackCount) {
         score += 1;
         reasons.push(
-          `${seller.feedbackCount} feedback is below threshold (${rules.minFeedbackCount})`
+          `${seller.feedbackCount} feedback is below threshold (${effectiveRules.minFeedbackCount})`
         );
       }
     } else {
@@ -270,21 +276,19 @@
       reasons.push("Feedback count not found");
     }
 
-    // Account age check
     if (seller.accountAge !== null) {
       if (seller.accountAge < 1) {
         score += 3;
         reasons.push(
           `Account is less than 1 year old (joined ${seller.joinYear})`
         );
-      } else if (seller.accountAge < rules.minAccountAgeYears) {
+      } else if (seller.accountAge < effectiveRules.minAccountAgeYears) {
         score += 2;
         reasons.push(
-          `Account is only ${seller.accountAge} year(s) old (threshold: ${rules.minAccountAgeYears})`
+          `Account is only ${seller.accountAge} year(s) old (threshold: ${effectiveRules.minAccountAgeYears})`
         );
       }
     } else {
-      // No penalty for missing join date — not always visible
       reasons.push("Account age not found");
     }
 
@@ -297,9 +301,9 @@
   }
 
   /* ---------- Badge injection ---------- */
-  function createBadge(risk, seller) {
+  function createBadge(risk, seller, isPremium) {
     const badge = document.createElement("span");
-    badge.className = `ebg-badge ebg-badge-${risk.level}`;
+    badge.className = `ebg-badge ebg-badge-${risk.level}${isPremium ? " ebg-premium" : ""}`;
     badge.setAttribute("data-ebg", "true");
 
     const icon = risk.level === "green" ? "✓" : risk.level === "yellow" ? "⚠" : "✕";
@@ -310,6 +314,7 @@
     tooltip.className = "ebg-tooltip";
 
     let html = `<strong>eBay Buyer Guardian</strong>`;
+    if (isPremium) html += ` <span class="ebg-premium-tag">PRO</span>`;
     html += `<div class="ebg-tooltip-seller">${seller.username || "Unknown Seller"}</div>`;
 
     if (seller.feedbackPercent !== null)
@@ -323,12 +328,15 @@
 
     html += `<div class="ebg-risk-label ebg-risk-${risk.level}">Risk: ${risk.level.toUpperCase()}</div>`;
 
-    if (risk.reasons.length) {
+    // Detailed reasons = Premium feature
+    if (isPremium && risk.reasons.length) {
       html += `<div class="ebg-reasons">`;
       risk.reasons.forEach((r) => {
         html += `<div class="ebg-reason">• ${r}</div>`;
       });
       html += `</div>`;
+    } else if (!isPremium && risk.reasons.length) {
+      html += `<div class="ebg-upsell">🔒 Detailed reasons — <a href="#" class="ebg-upsell-link" data-ebg-upsell="true">Upgrade to Pro</a></div>`;
     }
 
     tooltip.innerHTML = html;
@@ -342,16 +350,22 @@
       tooltip.classList.remove("ebg-tooltip-visible");
     });
 
+    // Upsell link click
+    badge.addEventListener("click", (e) => {
+      if (e.target.getAttribute("data-ebg-upsell") === "true") {
+        e.preventDefault();
+        chrome.runtime.sendMessage({ type: "EBG_OPEN_POPUP" });
+      }
+    });
+
     return badge;
   }
 
   /* ---------- Inject badge on listing page ---------- */
-  function injectListingBadge(seller, risk) {
-    // Remove existing badge if any
+  function injectListingBadge(seller, risk, isPremium) {
     const existing = document.querySelector('[data-ebg="true"]');
     if (existing) existing.remove();
 
-    // Find seller name element to place badge next to it
     const anchors = [
       '[data-testid="x-seller-name"]',
       ".seller-persona__name",
@@ -370,17 +384,15 @@
       }
     }
 
-    // Fallback: find the seller section header
     if (!target) {
       target = document.querySelector(
         '.ux-layout-section--seller, #RightSummaryPanel'
       )?.firstElementChild;
     }
 
-    const badge = createBadge(risk, seller);
+    const badge = createBadge(risk, seller, isPremium);
 
     if (target) {
-      // If target is a link, inject after its parent
       const container =
         target.closest(".ux-textspans") || target.parentElement || target;
       container.style.position = "relative";
@@ -390,7 +402,6 @@
       badge.style.display = "inline-block";
       target.insertAdjacentElement("afterend", badge);
     } else {
-      // Float badge in top-right corner as last resort
       badge.style.position = "fixed";
       badge.style.top = "80px";
       badge.style.right = "20px";
@@ -399,16 +410,15 @@
     }
   }
 
-  /* ---------- Inject badges on search results ---------- */
-  function injectSearchBadges(sellers, rules) {
+  /* ---------- Inject badges on search results (Premium) ---------- */
+  function injectSearchBadges(sellers, rules, isPremium) {
     sellers.forEach((seller) => {
       if (!seller.element) return;
-      // Remove existing
       const existing = seller.element.querySelector('[data-ebg="true"]');
       if (existing) existing.remove();
 
-      const risk = scoreRisk(seller, rules);
-      const badge = createBadge(risk, seller);
+      const risk = scoreRisk(seller, rules, isPremium);
+      const badge = createBadge(risk, seller, isPremium);
 
       badge.style.marginLeft = "6px";
       badge.style.display = "inline-block";
@@ -425,15 +435,47 @@
         sellerEl.appendChild(badge);
       }
 
-      // Save to history
-      saveHistory({
-        username: seller.username,
-        feedbackPercent: seller.feedbackPercent,
-        feedbackCount: seller.feedbackCount,
-        accountAge: seller.accountAge,
-        riskLevel: risk.level,
-        url: location.href,
-      });
+      saveHistory(
+        {
+          username: seller.username,
+          feedbackPercent: seller.feedbackPercent,
+          feedbackCount: seller.feedbackCount,
+          accountAge: seller.accountAge,
+          riskLevel: risk.level,
+          url: location.href,
+        },
+        isPremium
+      );
+    });
+  }
+
+  /* ---------- Inject search upsell banner (Free users on search pages) ---------- */
+  function injectSearchUpsell() {
+    // Remove existing
+    const existing = document.getElementById("ebg-search-upsell");
+    if (existing) existing.remove();
+
+    const banner = document.createElement("div");
+    banner.id = "ebg-search-upsell";
+    banner.className = "ebg-search-upsell";
+    banner.innerHTML = `
+      <div class="ebg-upsell-inner">
+        <span class="ebg-upsell-icon">🛡️</span>
+        <span><strong>eBay Buyer Guardian</strong> — Seller risk badges on search results are a <em>Pro</em> feature.</span>
+        <a href="#" class="ebg-upsell-btn" data-ebg-upsell="true">Upgrade to Pro</a>
+        <button class="ebg-upsell-close" data-ebg-close="true">✕</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+
+    banner.querySelector('[data-ebg-close="true"]').addEventListener("click", (e) => {
+      e.preventDefault();
+      banner.remove();
+    });
+
+    banner.querySelector('[data-ebg-upsell="true"]').addEventListener("click", (e) => {
+      e.preventDefault();
+      chrome.runtime.sendMessage({ type: "EBG_OPEN_POPUP" });
     });
   }
 
@@ -442,25 +484,35 @@
     const rules = await loadRules();
     if (!rules.enabled) return;
 
+    const license = await getLicense();
+    const isPremium = license.active;
     const pageType = getPageType();
 
     if (pageType === "listing") {
       const seller = parseListingSeller();
       if (seller.username || seller.feedbackPercent) {
-        const risk = scoreRisk(seller, rules);
-        injectListingBadge(seller, risk);
-        saveHistory({
-          username: seller.username,
-          feedbackPercent: seller.feedbackPercent,
-          feedbackCount: seller.feedbackCount,
-          accountAge: seller.accountAge,
-          riskLevel: risk.level,
-          url: location.href,
-        });
+        const risk = scoreRisk(seller, rules, isPremium);
+        injectListingBadge(seller, risk, isPremium);
+        saveHistory(
+          {
+            username: seller.username,
+            feedbackPercent: seller.feedbackPercent,
+            feedbackCount: seller.feedbackCount,
+            accountAge: seller.accountAge,
+            riskLevel: risk.level,
+            url: location.href,
+          },
+          isPremium
+        );
       }
     } else if (pageType === "search") {
-      const sellers = parseSearchSellers();
-      injectSearchBadges(sellers, rules);
+      if (isPremium) {
+        const sellers = parseSearchSellers();
+        injectSearchBadges(sellers, rules, isPremium);
+      } else {
+        // Show a subtle upsell banner for free users
+        injectSearchUpsell();
+      }
     }
   }
 
@@ -471,17 +523,27 @@
     run();
   }
 
-  // Re-run on SPA navigation (eBay uses pushState)
+  // Re-run on SPA navigation
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      // Clean old badges
       document
-        .querySelectorAll('[data-ebg="true"]')
+        .querySelectorAll('[data-ebg="true"], #ebg-search-upsell')
         .forEach((el) => el.remove());
-      setTimeout(run, 1500); // Wait for page to render
+      setTimeout(run, 1500);
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  // Listen for license updates from popup
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === "EBG_LICENSE_UPDATED") {
+      // Re-run with new license state
+      document
+        .querySelectorAll('[data-ebg="true"], #ebg-search-upsell')
+        .forEach((el) => el.remove());
+      run();
+    }
+  });
 })();

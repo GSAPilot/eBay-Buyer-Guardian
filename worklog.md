@@ -21,3 +21,26 @@ Stage Summary:
 - Download available at /ebay-buyer-guardian.zip from the landing page
 - Landing page at / showcases all features with download buttons
 - Extension is 100% local, zero external APIs, Manifest V3 compliant
+
+---
+Task ID: 2
+Agent: Main
+Task: Add Freemium + Lemon Squeezy monetization model
+
+Work Log:
+- Extension already had freemium features integrated (content.js, popup, background, styles)
+- Created server-side API route at /api/license/validate for secure Lemon Squeezy validation
+- Updated background.js with 3-tier validation strategy: server API → direct Lemon Squeezy → offline key format
+- Updated popup.js to route license validation through background service worker
+- Added Lemon Squeezy host_permissions to manifest.json
+- Added LEMON_SQUEEZY_API_KEY and LEMON_SQUEEZY_STORE_ID env vars to .env
+- Re-zipped extension (26.7KB) at public/ebay-buyer-guardian.zip
+- Landing page already has full pricing section with 3 tiers (Free / $4.99/mo / $39 lifetime)
+- Lint passes cleanly, dev server running
+
+Stage Summary:
+- Freemium model: Free (listing badges, 25 history, basic scoring) → Pro ($4.99/mo or $39 lifetime)
+- Pro features: search page badges, custom rules, detailed reasons, 500 history, CSV export, premium styling
+- Lemon Squeezy integration: server-side API route + extension-side 3-tier fallback validation
+- License activation via key input in Pro tab of extension popup
+- Monthly subscription re-validated every 24h via chrome.alarms
