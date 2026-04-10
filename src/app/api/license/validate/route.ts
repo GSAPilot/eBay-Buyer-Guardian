@@ -96,8 +96,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Determine plan type based on Lemon Squeezy variant ID
-      const variantId = data.license_key?.variant_id;
+      // Lemon Squeezy returns variant_id and customer info in `meta`, not `license_key`
+      // See: https://docs.lemonsqueezy.com/api/license-keys/validate-license-key
+      const variantId = data.meta?.variant_id || data.license_key?.variant_id;
+      const customerEmail = data.meta?.customer_email || data.license_key?.customer_email;
+      const customerName = data.meta?.customer_name || null;
+      const productName = data.meta?.product_name || null;
       let plan: "monthly" | "lifetime" = "monthly"; // default
       let tier = "premium";
 
@@ -118,8 +122,9 @@ export async function POST(request: NextRequest) {
         tier,
         expiresAt,
         variantId: variantId || null,
-        // Include customer email for display (optional)
-        customerEmail: data.license_key?.customer_email || null,
+        customerEmail: customerEmail || null,
+        customerName: customerName || null,
+        productName: productName || null,
       });
     } else {
       return NextResponse.json({
