@@ -1,7 +1,8 @@
 /* ============================================================
-   eBay Buyer Guardian — Content Script v1.1.0
+   eBay Buyer Guardian — Content Script v2.0.0
    Runs on ebay.com listing & search pages.
    Parses seller info, scores risk, injects badge + tooltip.
+   Updated for eBay's 2025 DOM structure.
    Freemium: search badges, custom rules, detailed reasons = Premium.
    ============================================================ */
 
@@ -27,7 +28,6 @@
       chrome.storage.sync.get(STORAGE_KEY_LICENSE, (data) => {
         const lic = data[STORAGE_KEY_LICENSE];
         if (!lic || !lic.key) return resolve({ active: false, tier: "free" });
-        // Check expiry for monthly subscriptions
         if (lic.expiresAt && Date.now() > lic.expiresAt) {
           return resolve({ active: false, tier: "free", expired: true });
         }
@@ -62,7 +62,6 @@
         timestamp: Date.now(),
         url: entry.url,
       };
-      // Free: keep last 25; Premium: keep last 500
       const limit = isPremium ? 500 : FREE_HISTORY_LIMIT;
       const keys = Object.keys(hist);
       if (keys.length > limit) {
@@ -81,7 +80,7 @@
     return "other";
   }
 
-  /* ---------- Seller parsing — Listing page ---------- */
+  /* ---------- Seller parsing — Listing page (2025 eBay DOM) ---------- */
   function parseListingSeller() {
     const seller = {
       username: null,
@@ -91,73 +90,145 @@
       joinYear: null,
     };
 
-    const selectors = {
-      username: [
-        '[data-testid="x-seller-name"] a',
-        '.seller-persona__name a',
-        '.seller-persona__name',
-        '#si-fb a',
-        'a[data-testid="x-seller-name"]',
-        '.d-stores-info-categories__container__info__section a',
-        'span[class*="seller"] a',
-        '.ux-layout-section--seller .ux-textspans a',
-        '#RightSummaryPanel .ux-textspans a',
-      ],
-    };
+    // === Seller name ===
+    // Primary: About seller link inside sellercard
+    const aboutSellerLink = document.querySelector(
+      '.x-sellercard-atf__info__about-seller a'
+    );
+    if (aboutSellerLink && aboutSellerLink.textContent.trim()) {
+      seller.username = aboutSellerLink.textContent.trim();
+    }
 
-    for (const sel of selectors.username) {
-      const el = document.querySelector(sel);
-      if (el && el.textContent.trim()) {
-        seller.username = el.textContent.trim();
+    // Fallback: store link in about-seller section
+    if (!seller.username) {
+      const storeLink = document.querySelector(
+        '.x-sellercard-atf__info__about-seller a[href*="/str/"]'
+      );
+      if (storeLink) seller.username = storeLink.textContent.trim();
+    }
+
+    // Fallback: any link with _ssn in clientPresentationMetadata
+    if (!seller.username) {
+      const ssnLink = document.querySelector(
+        '[data-clientpresentationmetadata*="_ssn"]'
+      );
+      if (ssnLink) {
+        try {
+          const meta = JSON.parse(
+            ssnLink.getAttribute("data-clientpresentationmetadata") || "{}"
+          );
+          if (meta._ssn) seller.username = meta._ssn;
+        } catch (e) {}
+      }
+    }
+
+    // Fallback: href with /usr/ or /str/
+    if (!seller.username) {
+      const sellerLink = document.querySelector(
+        '.x-sellercard-atf a[href*="/usr/"], .x-sellercard-atf a[href*="/str/"]'
+      );
+      if (sellerLink) {
+        const href = sellerLink.getAttribute("href") || "";
+        const m = href.match(/\/usr\/([^?/]+)/) || href.match(/\/str\/([^?/]+)/);
+        if (m) seller.username = decodeURIComponent(m[1]);
+      }
+    }
+
+    // === Feedback percent ===
+    // Primary: data-testid="x-sellercard-atf__data-item" containing "positive"
+    const dataItems = document.querySelectorAll(
+      '[data-testid="x-sellercard-atf__data-item"]'
+    );
+    for (const item of dataItems) {
+      const text = item.textContent;
+      const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%\s*positive/i);
+      if (fbMatch) {
+        seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
         break;
       }
     }
 
-    const pageText = document.querySelector(
-      '.ux-layout-section--seller, #RightSummaryPanel, .seller-persona'
-    );
-    if (pageText) {
-      const text = pageText.textContent;
-      const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/);
+    // Fallback: full sellercard text
+    if (!seller.feedbackPercent) {
+      const sellercard = document.querySelector(".x-sellercard-atf");
+      if (sellercard) {
+        const text = sellercard.textContent;
+        const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%\s*positive/i);
+        if (fbMatch) {
+          seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
+        }
+      }
+    }
+
+    // Fallback: body text
+    if (!seller.feedbackPercent) {
+      const bodyText = document.body.innerText;
+      const fbMatch = bodyText.match(
+        /(\d{1,3}(?:[.,]\d+)?)\s*%\s*positive\s*(?:feedback|rating)?/i
+      );
       if (fbMatch) {
         seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
       }
-      const fcMatch = text.match(
-        /[\(\s](\d[\d,]+)\s*(?:feedback|reviews|ratings)/i
+    }
+
+    // === Feedback count ===
+    // Primary: about-seller section "(14913)" or "(18.6K)"
+    if (!seller.feedbackCount) {
+      const aboutSeller = document.querySelector(
+        '[data-testid="x-sellercard-atf__about-seller"]'
+      );
+      if (aboutSeller) {
+        const text = aboutSeller.textContent;
+        const fcMatch = text.match(/\(([\d,.]+[KkMm]?)\)/);
+        if (fcMatch) {
+          seller.feedbackCount = parseShorthandNumber(fcMatch[1]);
+        }
+      }
+    }
+
+    // Fallback: BTF seller card "56K items sold" or "(18.6K)"
+    if (!seller.feedbackCount) {
+      const btfCard = document.querySelector(
+        '[data-testid="x-evo-btf-seller-card-river"]'
+      );
+      if (btfCard) {
+        const text = btfCard.textContent;
+        const fcMatch = text.match(/\(([\d,.]+[KkMm]?)\)/);
+        if (fcMatch) {
+          seller.feedbackCount = parseShorthandNumber(fcMatch[1]);
+        }
+      }
+    }
+
+    // Fallback: general body text
+    if (!seller.feedbackCount) {
+      const bodyText = document.body.innerText;
+      const fcMatch = bodyText.match(
+        /(\d[\d,]*)\s*(?:feedback|reviews|ratings|items sold)/i
       );
       if (fcMatch) {
         seller.feedbackCount = parseInt(fcMatch[1].replace(/,/g, ""), 10);
       }
-      const jyMatch = text.match(
-        /(?:joined|member\s+since|since)[^\d]*(\d{4})/i
-      );
+    }
+
+    // === Account age / join year ===
+    // Primary: BTF seller card "Joined May 2008"
+    const btfCard = document.querySelector(
+      '[data-testid="x-evo-btf-seller-card-river"]'
+    );
+    if (btfCard) {
+      const text = btfCard.textContent;
+      const jyMatch = text.match(/(?:Joined|member\s+since|since)\s+\w+\s+(\d{4})/i);
       if (jyMatch) {
         seller.joinYear = parseInt(jyMatch[1], 10);
         seller.accountAge = new Date().getFullYear() - seller.joinYear;
       }
     }
 
-    if (!seller.feedbackPercent) {
-      const allText = document.body.innerText;
-      const fbMatch = allText.match(
-        /(\d{1,3}(?:[.,]\d+)?)\s*%\s*positive\s*(?:feedback|rating)/i
-      );
-      if (fbMatch) {
-        seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
-      }
-    }
-    if (!seller.feedbackCount) {
-      const allText = document.body.innerText;
-      const fcMatch = allText.match(
-        /(\d[\d,]+)\s*(?:feedback|reviews|ratings)/i
-      );
-      if (fcMatch) {
-        seller.feedbackCount = parseInt(fcMatch[1].replace(/,/g, ""), 10);
-      }
-    }
+    // Fallback: body text search
     if (!seller.joinYear) {
-      const allText = document.body.innerText;
-      const jyMatch = allText.match(
+      const bodyText = document.body.innerText;
+      const jyMatch = bodyText.match(
         /(?:joined|member\s+since)[^\d]*(\d{4})/i
       );
       if (jyMatch) {
@@ -166,27 +237,30 @@
       }
     }
 
-    if (!seller.username) {
-      const sellerLink = document.querySelector(
-        'a[href*="/usr/"], a[href*="/str/"]'
-      );
-      if (sellerLink) {
-        const href = sellerLink.getAttribute("href") || "";
-        const m = href.match(/\/usr\/([^?/]+)/);
-        if (m) seller.username = decodeURIComponent(m[1]);
-        else seller.username = sellerLink.textContent.trim();
-      }
-    }
-
+    console.log("[EBG] Listing seller parsed:", seller);
     return seller;
   }
 
-  /* ---------- Seller parsing — Search results ---------- */
+  /* ---------- Parse shorthand numbers like "18.6K", "1.2M" ---------- */
+  function parseShorthandNumber(str) {
+    if (!str) return null;
+    str = str.trim().replace(/,/g, "");
+    const multipliers = { K: 1000, k: 1000, M: 1000000, m: 1000000 };
+    const lastChar = str.slice(-1);
+    if (multipliers[lastChar]) {
+      const num = parseFloat(str.slice(0, -1));
+      return Math.round(num * multipliers[lastChar]);
+    }
+    const num = parseInt(str, 10);
+    return isNaN(num) ? null : num;
+  }
+
+  /* ---------- Seller parsing — Search results (2025 eBay DOM) ---------- */
   function parseSearchSellers() {
     const sellers = [];
-    const cards = document.querySelectorAll(
-      '.srp-results .s-item, .srp-river-answer .s-item'
-    );
+
+    // eBay 2025 uses .s-card instead of .s-item
+    const cards = document.querySelectorAll(".s-card");
 
     cards.forEach((card) => {
       const seller = {
@@ -198,38 +272,79 @@
         element: card,
       };
 
-      const sellerEl =
-        card.querySelector(".s-item__seller-info-text") ||
-        card.querySelector(".s-item__seller a") ||
-        card.querySelector("[class*='seller']");
-      if (sellerEl) {
-        const text = sellerEl.textContent.trim();
-        const nameMatch = text.match(/^(.+?)(?:\s*\()/);
-        seller.username = nameMatch
-          ? nameMatch[1].trim()
-          : text.split("(")[0].trim();
+      // Primary: secondary attributes section contains "sellername 99.6% positive (5.5K)"
+      const secondaryAttr = card.querySelector(
+        ".su-card-container__attributes__secondary"
+      );
+      if (secondaryAttr) {
+        const text = secondaryAttr.textContent.trim();
+        parseSellerInfoString(text, seller);
+      }
 
-        const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/);
-        if (fbMatch) {
-          seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
-        }
-        const fcMatch = text.match(/(\d[\d,]+)\s*(?:feedback|reviews)/i);
-        if (fcMatch) {
-          seller.feedbackCount = parseInt(fcMatch[1].replace(/,/g, ""), 10);
+      // Fallback: attribute row with seller info
+      if (!seller.username) {
+        const attrRow = card.querySelector(".s-card__attribute-row");
+        if (attrRow) {
+          const text = attrRow.textContent.trim();
+          parseSellerInfoString(text, seller);
         }
       }
 
-      if (seller.username) sellers.push(seller);
+      // Fallback: any element with seller text pattern
+      if (!seller.username) {
+        const allSpans = card.querySelectorAll(".su-styled-text");
+        for (const span of allSpans) {
+          const text = span.textContent.trim();
+          if (text.match(/\d+\.\d+%\s*positive/i)) {
+            // The seller name is likely in a sibling or parent element
+            const parent = span.closest(".s-card__attribute-row") || span.parentElement;
+            if (parent) {
+              parseSellerInfoString(parent.textContent.trim(), seller);
+            }
+            break;
+          }
+        }
+      }
+
+      if (seller.username || seller.feedbackPercent) {
+        sellers.push(seller);
+      }
     });
 
+    console.log("[EBG] Search sellers parsed:", sellers.length, sellers.slice(0, 3));
     return sellers;
+  }
+
+  /* ---------- Parse seller info string like "sarahcell 99.6% positive (5.5K)" ---------- */
+  function parseSellerInfoString(text, seller) {
+    // Pattern: "sellername 99.6% positive (5.5K)" or "sellername  99.3% positive (38.5K)"
+    const fullMatch = text.match(
+      /^([a-zA-Z0-9_\-\.]+)\s+(\d{1,3}(?:[.,]\d+)?)\s*%\s*positive\s*\(([^)]+)\)/i
+    );
+    if (fullMatch) {
+      seller.username = fullMatch[1].trim();
+      seller.feedbackPercent = parseFloat(fullMatch[2].replace(",", "."));
+      seller.feedbackCount = parseShorthandNumber(fullMatch[3].trim());
+      return;
+    }
+
+    // Fallback: just "99.6% positive" without name
+    const fbMatch = text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%\s*positive/i);
+    if (fbMatch && !seller.feedbackPercent) {
+      seller.feedbackPercent = parseFloat(fbMatch[1].replace(",", "."));
+    }
+
+    // Fallback: just "(5.5K)" without other info
+    const fcMatch = text.match(/\(([\d,.]+[KkMm]?)\)/);
+    if (fcMatch && !seller.feedbackCount) {
+      seller.feedbackCount = parseShorthandNumber(fcMatch[1].trim());
+    }
   }
 
   /* ---------- Risk scoring ---------- */
   function scoreRisk(seller, rules, isPremium) {
     if (!rules.enabled) return { level: "disabled", score: -1, reasons: [] };
 
-    // Free users always use default thresholds
     const effectiveRules = isPremium
       ? rules
       : { ...DEFAULT_RULES, enabled: rules.enabled };
@@ -328,7 +443,6 @@
 
     html += `<div class="ebg-risk-label ebg-risk-${risk.level}">Risk: ${risk.level.toUpperCase()}</div>`;
 
-    // Detailed reasons = Premium feature
     if (isPremium && risk.reasons.length) {
       html += `<div class="ebg-reasons">`;
       risk.reasons.forEach((r) => {
@@ -342,7 +456,6 @@
     tooltip.innerHTML = html;
     badge.appendChild(tooltip);
 
-    // Hover behavior
     badge.addEventListener("mouseenter", () => {
       tooltip.classList.add("ebg-tooltip-visible");
     });
@@ -350,7 +463,6 @@
       tooltip.classList.remove("ebg-tooltip-visible");
     });
 
-    // Upsell link click
     badge.addEventListener("click", (e) => {
       if (e.target.getAttribute("data-ebg-upsell") === "true") {
         e.preventDefault();
@@ -366,28 +478,38 @@
     const existing = document.querySelector('[data-ebg="true"]');
     if (existing) existing.remove();
 
-    const anchors = [
-      '[data-testid="x-seller-name"]',
-      ".seller-persona__name",
-      "#si-fb",
-      '.ux-layout-section--seller .ux-textspans a',
-      "#RightSummaryPanel .ux-textspans a",
-      'a[href*="/usr/"]',
-    ];
+    // Primary: next to the seller name in the about-seller section
+    let target = document.querySelector(
+      ".x-sellercard-atf__info__about-seller"
+    );
 
-    let target = null;
-    for (const sel of anchors) {
-      const el = document.querySelector(sel);
-      if (el) {
-        target = el;
-        break;
-      }
+    // Fallback: next to the sellercard info section
+    if (!target) {
+      target = document.querySelector(".x-sellercard-atf__info");
     }
 
+    // Fallback: the sellercard itself
     if (!target) {
-      target = document.querySelector(
-        '.ux-layout-section--seller, #RightSummaryPanel'
-      )?.firstElementChild;
+      target = document.querySelector(".x-sellercard-atf");
+    }
+
+    // Fallback: old-style selectors
+    if (!target) {
+      const anchors = [
+        '[data-testid="x-seller-name"]',
+        ".seller-persona__name",
+        "#si-fb",
+        '.ux-layout-section--seller .ux-textspans a',
+        "#RightSummaryPanel .ux-textspans a",
+        'a[href*="/usr/"]',
+      ];
+      for (const sel of anchors) {
+        const el = document.querySelector(sel);
+        if (el) {
+          target = el;
+          break;
+        }
+      }
     }
 
     const badge = createBadge(risk, seller, isPremium);
@@ -402,15 +524,18 @@
       badge.style.display = "inline-block";
       target.insertAdjacentElement("afterend", badge);
     } else {
+      // Last resort: fixed position badge
       badge.style.position = "fixed";
       badge.style.top = "80px";
       badge.style.right = "20px";
       badge.style.zIndex = "999999";
       document.body.appendChild(badge);
     }
+
+    console.log("[EBG] Listing badge injected, risk:", risk.level);
   }
 
-  /* ---------- Inject badges on search results (Premium) ---------- */
+  /* ---------- Inject badges on search results ---------- */
   function injectSearchBadges(sellers, rules, isPremium) {
     sellers.forEach((seller) => {
       if (!seller.element) return;
@@ -424,15 +549,37 @@
       badge.style.display = "inline-block";
       badge.style.verticalAlign = "middle";
 
-      const sellerEl =
-        seller.element.querySelector(".s-item__seller-info-text") ||
-        seller.element.querySelector(".s-item__seller") ||
-        seller.element.querySelector("[class*='seller']");
+      // Primary: secondary attributes section (contains seller info on 2025 eBay)
+      let sellerEl =
+        seller.element.querySelector(
+          ".su-card-container__attributes__secondary"
+        ) ||
+        seller.element.querySelector(".s-card__attribute-row") ||
+        seller.element.querySelector(".s-card__footer");
+
+      // Fallback: any element containing the seller name
+      if (!sellerEl && seller.username) {
+        const allSpans = seller.element.querySelectorAll("span, div");
+        for (const el of allSpans) {
+          if (el.textContent.includes(seller.username)) {
+            sellerEl = el;
+            break;
+          }
+        }
+      }
 
       if (sellerEl) {
         sellerEl.classList.add("ebg-seller-container");
         sellerEl.style.position = "relative";
         sellerEl.appendChild(badge);
+      } else {
+        // Append to the card footer as last resort
+        const footer = seller.element.querySelector(".s-card__footer");
+        if (footer) {
+          footer.classList.add("ebg-seller-container");
+          footer.style.position = "relative";
+          footer.appendChild(badge);
+        }
       }
 
       saveHistory(
@@ -447,11 +594,12 @@
         isPremium
       );
     });
+
+    console.log("[EBG] Search badges injected for", sellers.length, "sellers");
   }
 
-  /* ---------- Inject search upsell banner (Free users on search pages) ---------- */
+  /* ---------- Inject search upsell banner (Free users) ---------- */
   function injectSearchUpsell() {
-    // Remove existing
     const existing = document.getElementById("ebg-search-upsell");
     if (existing) existing.remove();
 
@@ -482,14 +630,36 @@
   /* ---------- Main ---------- */
   async function run() {
     const rules = await loadRules();
-    if (!rules.enabled) return;
+    if (!rules.enabled) {
+      console.log("[EBG] Extension disabled by user rules");
+      return;
+    }
 
     const license = await getLicense();
     const isPremium = license.active;
     const pageType = getPageType();
 
+    console.log("[EBG] Running on page type:", pageType, "Premium:", isPremium);
+
     if (pageType === "listing") {
-      const seller = parseListingSeller();
+      // On listing pages, seller info may be lazy-loaded
+      // Try parsing immediately, then retry after a delay
+      let seller = parseListingSeller();
+
+      if (!seller.username && !seller.feedbackPercent) {
+        // Wait for lazy-loaded content and try again
+        console.log("[EBG] Seller info not found, retrying in 2s...");
+        await new Promise((r) => setTimeout(r, 2000));
+        seller = parseListingSeller();
+      }
+
+      if (!seller.username && !seller.feedbackPercent) {
+        // One more retry after longer delay
+        console.log("[EBG] Seller info still not found, retrying in 4s...");
+        await new Promise((r) => setTimeout(r, 4000));
+        seller = parseListingSeller();
+      }
+
       if (seller.username || seller.feedbackPercent) {
         const risk = scoreRisk(seller, rules, isPremium);
         injectListingBadge(seller, risk, isPremium);
@@ -504,13 +674,24 @@
           },
           isPremium
         );
+      } else {
+        console.log("[EBG] Could not find seller info on listing page");
       }
     } else if (pageType === "search") {
       if (isPremium) {
-        const sellers = parseSearchSellers();
-        injectSearchBadges(sellers, rules, isPremium);
+        let sellers = parseSearchSellers();
+        if (sellers.length === 0) {
+          // Wait for lazy-loaded search results
+          console.log("[EBG] No search sellers found, retrying in 2s...");
+          await new Promise((r) => setTimeout(r, 2000));
+          sellers = parseSearchSellers();
+        }
+        if (sellers.length > 0) {
+          injectSearchBadges(sellers, rules, isPremium);
+        } else {
+          console.log("[EBG] Could not find seller info on search page");
+        }
       } else {
-        // Show a subtle upsell banner for free users
         injectSearchUpsell();
       }
     }
@@ -523,7 +704,7 @@
     run();
   }
 
-  // Re-run on SPA navigation
+  // Re-run on SPA navigation (eBay uses client-side routing)
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
     if (location.href !== lastUrl) {
@@ -531,15 +712,43 @@
       document
         .querySelectorAll('[data-ebg="true"], #ebg-search-upsell')
         .forEach((el) => el.remove());
-      setTimeout(run, 1500);
+      // Delay to allow new page content to load
+      setTimeout(run, 2000);
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
 
+  // Also listen for late-loading seller cards (MutationObserver for sellercard)
+  const sellercardObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Check if a sellercard was just added
+          if (
+            node.matches?.(".x-sellercard-atf") ||
+            node.querySelector?.(".x-sellercard-atf")
+          ) {
+            console.log("[EBG] Sellercard detected via DOM mutation, re-running");
+            // Don't re-run if we already have a badge
+            if (!document.querySelector('[data-ebg="true"]')) {
+              run();
+            }
+          }
+        }
+      }
+    }
+  });
+  sellercardObserver.observe(document.body, { childList: true, subtree: true });
+
   // Listen for license updates from popup
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EBG_LICENSE_UPDATED") {
-      // Re-run with new license state
+      document
+        .querySelectorAll('[data-ebg="true"], #ebg-search-upsell')
+        .forEach((el) => el.remove());
+      run();
+    }
+    if (message.type === "EBG_RULES_UPDATED") {
       document
         .querySelectorAll('[data-ebg="true"], #ebg-search-upsell')
         .forEach((el) => el.remove());
