@@ -10,8 +10,13 @@ import { NextRequest, NextResponse } from "next/server";
  * - We can enrich the response with plan-specific metadata
  *
  * Request body: { key: string }
- * Response: { valid: boolean, plan?: string, expiresAt?: number | null, error?: string }
+ * Response: { valid: boolean, plan?: string, tier?: string, expiresAt?: number | null, error?: string }
  */
+
+// Lemon Squeezy Variant IDs for eBay Buyer Guardian
+const VARIANT_MONTHLY = 1512373; // $4.99/month subscription
+const VARIANT_LIFETIME = 1512404; // $39.00 one-time
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -36,8 +41,7 @@ export async function POST(request: NextRequest) {
     const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
     const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
 
-    // If no API key is configured, use the public validate endpoint
-    // (no server-side API key needed, but less secure)
+    // Validate against Lemon Squeezy API
     const validateUrl = "https://api.lemonsqueezy.com/v1/licenses/validate";
 
     const response = await fetch(validateUrl, {
@@ -45,14 +49,14 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        // If we have a server-side API key, use it for authenticated validation
+        // Use authenticated validation if API key is available
         ...(LEMON_SQUEEZY_API_KEY
           ? { Authorization: `Bearer ${LEMON_SQUEEZY_API_KEY}` }
           : {}),
       },
       body: JSON.stringify({
         license_key: trimmedKey,
-        // Optionally include store_id for scoping
+        // Scope to our store if store_id is configured
         ...(LEMON_SQUEEZY_STORE_ID
           ? { store_id: parseInt(LEMON_SQUEEZY_STORE_ID, 10) }
           : {}),
@@ -83,16 +87,20 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Determine plan type based on expiry
-      const plan = expiresAt ? "monthly" : "lifetime";
-
-      // Map Lemon Squeezy product variants to our tiers
-      // Variant IDs would be set in Lemon Squeezy dashboard
+      // Determine plan type based on Lemon Squeezy variant ID
       const variantId = data.license_key?.variant_id;
-      let tier = "premium"; // default
-      if (variantId) {
-        // You can map variant IDs to tiers here
-        // e.g., if (variantId === 12345) tier = "premium";
+      let plan: "monthly" | "lifetime" = "monthly"; // default
+      let tier = "premium";
+
+      if (variantId === VARIANT_LIFETIME) {
+        plan = "lifetime";
+        tier = "premium";
+      } else if (variantId === VARIANT_MONTHLY) {
+        plan = "monthly";
+        tier = "premium";
+      } else {
+        // Fallback: infer plan from expiry for unknown variants
+        plan = expiresAt ? "monthly" : "lifetime";
       }
 
       return NextResponse.json({
@@ -100,6 +108,7 @@ export async function POST(request: NextRequest) {
         plan,
         tier,
         expiresAt,
+        variantId: variantId || null,
         // Include customer email for display (optional)
         customerEmail: data.license_key?.customer_email || null,
       });
@@ -119,4 +128,31 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * GET /api/license/validate
+ *
+ * Diagnostic endpoint — checks if the server is properly configured
+ * to validate licenses with Lemon Squeezy. Does NOT expose any secrets.
+ */
+export async function GET() {
+  const hasApiKey = !!process.env.LEMON_SQUEEZY_API_KEY;
+  const hasStoreId = !!process.env.LEMON_SQUEEZY_STORE_ID;
+
+  return NextResponse.json({
+    status: "operational",
+    configured: hasApiKey && hasStoreId,
+    details: {
+      apiKeySet: hasApiKey,
+      storeIdSet: hasStoreId,
+      storeId: hasStoreId ? process.env.LEMON_SQUEEZY_STORE_ID : null,
+      variantMonthly: VARIANT_MONTHLY,
+      variantLifetime: VARIANT_LIFETIME,
+    },
+    message:
+      hasApiKey && hasStoreId
+        ? "License validation is fully configured with authenticated Lemon Squeezy API access."
+        : "Missing environment variables. Set LEMON_SQUEEZY_API_KEY and LEMON_SQUEEZY_STORE_ID for authenticated validation.",
+  });
 }
