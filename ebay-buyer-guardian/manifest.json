@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "eBay Buyer Guardian",
   "version": "2.0.0",
-  "description": "Seller Risk Analyzer — instantly spot risky eBay sellers with color-coded badges, custom rules, and a history dashboard. Freemium with Premium upgrade.",
+  "description": "Spot risky eBay sellers instantly with color-coded risk badges, custom rules & seller history. Free with Pro upgrade.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://*.ebay.com/*", "https://*.lemonsqueezy.com/*"],
   "background": {
